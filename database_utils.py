@@ -27,6 +27,3 @@ class DatabaseConnector:
         table_list = inspector.get_table_names()
         return table_list
 
-    
-test = DatabaseConnector()
-print(test.list_db_tables())
