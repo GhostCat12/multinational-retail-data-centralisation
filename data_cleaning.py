@@ -48,7 +48,7 @@ class DataCleaning:
                                                                   "IM8MN1L9MJ" , "LZGTB0T5Z7" , "FB13AKRI21" , "OS2P9CMHR6", "NTCGYW8LVC", 
                                                                   "PG8MOC0UZI" , "0CU6LW3NKB" , "QVUW9JSKY3" , "VSM4IZ4EL3" , "44YAIDY048"])].index)
         
-        print(user_df.head(5))
+        
 
         # NOW CHANGING TO CORRECT D-TYPES FOR ALL COLUMNS 
 
@@ -66,5 +66,7 @@ class DataCleaning:
         
         user_df['join_date'] = user_df['join_date'].apply(parse)
         user_df['join_date'] = pd.to_datetime(user_df['join_date'], infer_datetime_format=True, errors='coerce')
-        print(user_df.info())
+        
+
+        return user_df
 
