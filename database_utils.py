@@ -26,4 +26,14 @@ class DatabaseConnector:
         inspector = inspect(engine)
         table_list = inspector.get_table_names()
         return table_list
+    
+    def upload_to_db(self, pandas_df, table_name):
+        with open('sales_data_creds.yaml' , 'r') as file:
+            local_creds = yaml.safe_load(file) 
+                 
+        local_engine = create_engine(f"{'postgresql'}+{'psycopg2'}://{local_creds['LOCAL_USER']}:{local_creds['LOCAL_PASSWORD']}@{'localhost'}:{'5432'}/{'sales_data'}")
+        pandas_df.to_sql(table_name, local_engine, if_exists='replace')
+        
 
+# method in DatabaseConnector class called upload_to_db. This method will take in a Pandas DataFrame and table name to upload to as an argument.
+# Once extracted and cleaned use the upload_to_db method to store the data in your sales_data database in a table named dim_users.
