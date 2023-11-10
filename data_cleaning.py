@@ -1,6 +1,8 @@
 from data_extraction import DataExtractor
 import pandas as pd
 import numpy as np
+import datetime
+from dateutil.parser import parse
 
 
 class DataCleaning: 
@@ -54,6 +56,15 @@ class DataCleaning:
         user_df['first_name'] = user_df['first_name'].astype('str')
         user_df['last_name'] = user_df['last_name'].astype('str')
 
-        # Use phone number checker to check phone numbers
-
+        # Use phone number checker to check phone numbers follow correct expression, otherwise replace with NaN.
+        regex_expression = '^(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|\+)44\)?[\s-]?(?:\(?0\)?[\s-]?)?)|(?:\(?0))(?:(?:\d{5}\)?[\s-]?\d{4,5})|(?:\d{4}\)?[\s-]?(?:\d{5}|\d{3}[\s-]?\d{3}))|(?:\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4})|(?:\d{2}\)?[\s-]?\d{4}[\s-]?\d{4}))(?:[\s-]?(?:x|ext\.?|\#)\d{3,4})?$' # regular expression to match
+        user_df.loc[~user_df['phone_number'].str.match(regex_expression), 'phone_number'] = np.nan # For every row  where the Phone column does not match our regular expression, replace the value with NaN
+        # have not deleted NaN values, to delete: user_df.dropna(inplace=True)
         # Set date_of_birth and join_date in date64 format
+        user_df['date_of_birth'] = user_df['date_of_birth'].apply(parse)
+        user_df['date_of_birth'] = pd.to_datetime(user_df['date_of_birth'] , infer_datetime_format=True , errors='coerce' )
+        
+        user_df['join_date'] = user_df['join_date'].apply(parse)
+        user_df['join_date'] = pd.to_datetime(user_df['join_date'], infer_datetime_format=True, errors='coerce')
+        print(user_df.info())
+
