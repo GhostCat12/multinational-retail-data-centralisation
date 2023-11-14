@@ -9,6 +9,7 @@ class DataCleaning:
     def __init__(self):
         self.rds_table = DataExtractor().read_rds_table(table_name='legacy_users')
         self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
+        self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
 
     def clean_user_data(self):
         user_df = self.rds_table
@@ -85,7 +86,7 @@ class DataCleaning:
 
         #convert to datetime64
         card_details['date_payment_confirmed'] = card_details['date_payment_confirmed'].apply(parse)
-        card_details['date_payment_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
+        card_details['date_paystores_datament_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
     
         #convert card_numbers that can convert to int64 , will return them as floats
         card_details['card_number'] = pd.to_numeric(card_details['card_number'], errors = 'coerce')
@@ -96,7 +97,60 @@ class DataCleaning:
         
         print(card_details[['expiry_date','date_payment_confirmed']], '\n\n', card_details.info())
         return card_details
+    
+    def clean_store_data(self):
+        stores_data = self.store_table
+        
+        #stores_data['index'] = range(1,451)
+        stores_data.set_index('index', inplace =True)
+
+        # Reorder columns
+        stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date' , 'lat']]
+        
+        # Replace all 'NULL' and 'None' to np.nan
+        stores_data.replace({'NULL': np.nan , 'None': np.nan}, inplace=True)
+        stores_data['lat']
+        # Drop all non-NaN erroneous values found across all rows
+        stores_data = stores_data.drop(stores_data[(~stores_data['lat'].isna())].index)
+        # Drop 'Lat' column
+        stores_data.drop(['lat'], axis=1, inplace=True)
+        # Drop all rows with NaN values
+        stores_data = stores_data.dropna()
+
+        # Replace '\n' with a comma in 'address' column 
+        stores_data['address'] = stores_data['address'].replace(r'\n' ,', ',regex=True)
+        # Replace mistyped continents with correct continent
+        stores_data['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)
+
+        # Change 'staff_numbers' Dtype to int64
+        stores_data['staff_numbers'] = stores_data['staff_numbers'].str.replace('\D', '', regex=True)
+        stores_data['staff_numbers'] = stores_data['staff_numbers'].astype('int64')
+
+        # Change 'latitude' and 'logitude' column dtypes to float32 and round to 3 decimal places
+        stores_data['latitude'] = stores_data['latitude'].astype('float32').round(3)
+        stores_data['longitude'] = stores_data['longitude'].astype('float64').round(3)
+
+        # Change 'opening_date' column Dtype to datetime64
+        stores_data['opening_date'] = stores_data['opening_date'].apply(parse)
+        stores_data['opening_date'] = pd.to_datetime(stores_data['opening_date'], errors = 'coerce')
+
+        # set imdex to number of rows 
+        stores_data = stores_data.set_axis(range(1,len(stores_data)+1))
+        return stores_data
+
+
+
+
+
+
+
+
+
+
+
 
         
+        
+
 
 
