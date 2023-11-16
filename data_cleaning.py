@@ -2,6 +2,7 @@ from data_extraction import DataExtractor
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
+import re
 
 
 
@@ -10,13 +11,14 @@ class DataCleaning:
         self.rds_table = DataExtractor().read_rds_table(table_name='legacy_users')
         self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
         self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
+        self.products_table =DataExtractor().extract_from_s3(address='s3://data-handling-public/products.csv')
 
     def clean_user_data(self):
         user_df = self.rds_table
         # Clean the user data, look out for NULL values, errors with dates, incorrectly typed values and rows filled with the wrong information.
         
 
-        # Assign index column as index and fix number order of index. 
+        # Assign index column as index and fix number order of index.                                                          # MEOW  
         user_df['index'] = range(0,15320)
         user_df.set_index('index', inplace=True)
 
@@ -43,7 +45,7 @@ class DataCleaning:
         mask = (user_df['user_uuid'].str.len() == 10)
         check_length = user_df.loc[mask]
         # Drop rows with incorrect data
-        user_df = user_df.drop(user_df[user_df.country_code.isin(["5D74J6FPFJ", "XPVCZE2L8B" , "QREF9WLI2A", "XKI9UXSCZ1" , "RVRFD92E48", 
+        user_df = user_df.drop(user_df[user_df.country_code.isin(["5D74J6FPFJ", "XPVCZE2L8B" , "QREF9WLI2A", "XKI9UXSCZ1" , "RVRFD92E48",                       #MEOW 
                                                                   "IM8MN1L9MJ" , "LZGTB0T5Z7" , "FB13AKRI21" , "OS2P9CMHR6", "NTCGYW8LVC", 
                                                                   "PG8MOC0UZI" , "0CU6LW3NKB" , "QVUW9JSKY3" , "VSM4IZ4EL3" , "44YAIDY048"])].index)
         
@@ -98,6 +100,7 @@ class DataCleaning:
         print(card_details[['expiry_date','date_payment_confirmed']], '\n\n', card_details.info())
         return card_details
     
+    
     def clean_store_data(self):
         stores_data = self.store_table
         
@@ -139,18 +142,38 @@ class DataCleaning:
         return stores_data
 
 
-
-
-
-
-
-
-
-
-
-
-        
+    def convert_product_weights(self):
+        products_table = self.products_table
         
 
+        # get rid of erroueous values by dropping any length of string = 10.  
+        products_table = products_table.drop(products_table[products_table['weight'].str.len() == 10].index)
 
+        # convert ml to grams
+        products_table['weight'] = products_table['weight'].str.replace('ml','g')
+        products_table['weight'].replace({'nan': np.nan , 'NULL': np.nan , '?': np.nan , 'NaN':np.nan})
 
+        #dropna in weight column
+        products_table.dropna(inplace=True, subset='weight') 
+
+        #split numbers and letter in weights into a list 
+        products_table['weight'] = products_table['weight'].apply(lambda x: re.split(r"([a-zA-Z]+)" , x)) 
+
+        def t(lists):
+            if 'x' in lists: # checks each list inside each row
+                convert = float(lists[0]) * float(lists[2])/1000 # the formula to convert into single value kg 
+                return convert
+            elif 'k' in lists:
+                return float(lists[0])
+            elif 'oz' in lists:
+                convert_oz = (float(lists[0])*0.0283495)
+                return convert_oz
+            else:
+                convert_grams = float(lists[0])/1000
+                return convert_grams
+            
+        #apply above func
+        products_table['weight'] = products_table['weight'].apply(t)
+
+        return products_table
+    
