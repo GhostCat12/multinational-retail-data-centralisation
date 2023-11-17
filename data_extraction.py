@@ -50,11 +50,10 @@ class DataExtractor:
             return products_data
         elif address[-4:] == 'json':
             date_details = pd.read_json(address)
-            print(date_details)
             return date_details
 
         
-        return s3_df
+        
 
         
 
