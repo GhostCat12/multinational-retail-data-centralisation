@@ -4,6 +4,8 @@ import numpy as np
 import tabula 
 import yaml
 import requests 
+import boto3
+
 
 class DataExtractor:
     def __init__(self):
@@ -41,6 +43,14 @@ class DataExtractor:
                 list_of_dicts.append(data)
         stores_data = pd.DataFrame(list_of_dicts)
         return stores_data
+    
+    def extract_from_s3(self, address):
+        products_data = pd.read_csv(address)
+        return products_data
+
+        
+
+        
         
 
 
