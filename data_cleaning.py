@@ -105,7 +105,7 @@ class DataCleaning:
         stores_data = self.store_table
         
         #stores_data['index'] = range(1,451)
-        stores_data.set_index('index', inplace =True)
+        stores_data.set_index('index', inplace =True)                                                                                                                                                                   #meow
 
         # Reorder columns
         stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date' , 'lat']]
@@ -175,5 +175,42 @@ class DataCleaning:
         #apply above func
         products_table['weight'] = products_table['weight'].apply(t)
 
+        products_table['weight'] = products_table['weight'].round(6)
+
         return products_table
     
+    def clean_products_data(self):
+        products_table = self.convert_product_weights()
+
+        #drop unnamed column which was equal to index 
+        products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)
+
+        #rename
+        products_table.rename(columns={"product_price": "product_price_£", "weight": "weight_kg"}, inplace=True)
+
+        #reorder table columns 
+        products_table = products_table[['product_code', 'product_name', 'product_price_£', 'category', 'weight_kg', 'removed','EAN', 'uuid','date_added']]
+
+        # replace any nulls and delete
+        products_table = products_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})
+        products_table.isnull().any(axis=0)
+
+        # check for errouns, theres no erronous
+        products_table.loc[products_table['EAN'].str.len() < 11]
+
+        #remove pound sign
+        products_table['product_price_£'] = products_table['product_price_£'].map(lambda x: x.lstrip('£'))
+
+        #change price dtype 
+        products_table['product_price_£'] = products_table['product_price_£'].astype('float64').round(2)
+
+        #check min max prices do .describe()
+        products_table['product_price_£'].describe()
+
+        # change dtype datetime64
+        products_table['date_added'] = products_table['date_added'].apply(parse)
+        products_table['date_added'] = pd.to_datetime(products_table['date_added'], errors='coerce')
+
+        products_table['EAN'] = products_table['EAN'].astype('int64')
+
+        return products_table 
