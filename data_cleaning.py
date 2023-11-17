@@ -8,11 +8,12 @@ import re
 
 class DataCleaning: 
     def __init__(self):
-        self.rds_table = DataExtractor().read_rds_table(table_name='legacy_users')
-        self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
-        self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
-        self.products_table =DataExtractor().extract_from_s3(address='s3://data-handling-public/products.csv')
-        self.orders_table = DataExtractor().read_rds_table('orders_table')
+        #self.rds_table = DataExtractor().read_rds_table(table_name='legacy_users')
+        #self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
+        #self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
+        #self.products_table =DataExtractor().extract_from_s3(address='s3://data-handling-public/products.csv')
+        #self.orders_table = DataExtractor().read_rds_table('orders_table')
+        self.date_Details_table = DataExtractor().extract_from_s3('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
 
     def clean_user_data(self):
         user_df = self.rds_table
@@ -193,7 +194,7 @@ class DataCleaning:
         products_table = products_table[['product_code', 'product_name', 'product_price_£', 'category', 'weight_kg', 'removed','EAN', 'uuid','date_added']]
 
         # replace any nulls and delete
-        products_table = products_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})
+        products_table = products_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})                                                    #not delted? #date_details.dropna(inplace=True)
         products_table.isnull().any(axis=0)
 
         # check for errouns, theres no erronous
@@ -224,4 +225,59 @@ class DataCleaning:
         orders_table.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)
 
         return orders_table
+    
+    def clean_date_details_data(self):
+        date_details_table = self.date_Details_table
+
+        #reorder table columns 
+        date_details_table = date_details_table[['date_uuid', 'year', 'month', 'day', 'time_period', 'timestamp']]
+
+        # check for nulls and any erroneous values and check multiples columns to see all columns have 15 'NULL'
+        check1 = date_details_table['month'].value_counts()
+        check2 = np.sort(date_details_table['month'].unique())
+
+        #check erroneous across entire rows  #it is
+        mask = (date_details_table['day'].str.len() > 8)
+        check_erroneous = date_details_table.loc[mask]
+
+        #check 'NULL' across all rows       #it is
+        mask = (date_details_table['day'].str.len() == 4)
+        check_NULL = date_details_table.loc[mask]
+
+        #drop all rows with erronuos columns
+        date_details_table.drop(date_details_table[date_details_table['day'].str.len() > 8].index, inplace= True)
+
+        # replace any nulls and delete
+        date_details_table = date_details_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})
+        date_details_table.dropna(inplace=True)
+        date_details_table.isnull().any(axis=0)
+
+        #convert timestamp to datetime[64]
+        date_details_table['timestamp'] = pd.to_datetime(date_details_table['timestamp'], format = '%H:%M:%S')
+        date_details_table['timestamp'].info()
+
+        #Convert singular months to have zero at the start 
+        def month_convert(x):
+            if len(str(x)) == 1:
+                return '0'+ str(x)
+            else:
+                return x
+
+        date_details_table['month']= date_details_table['month'].apply(month_convert)
+
+        #convert year to datetime64
+        date_details_table['year'] = pd.to_datetime(date_details_table['year'])
+
+        print(date_details_table)
+
+        return date_details_table
+        
+
+
+
+
+
+
+
+
 
