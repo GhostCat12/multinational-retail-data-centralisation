@@ -45,8 +45,16 @@ class DataExtractor:
         return stores_data
     
     def extract_from_s3(self, address):
-        products_data = pd.read_csv(address)
-        return products_data
+        if address[-3:] == 'csv':
+            products_data = pd.read_csv(address)
+            return products_data
+        elif address[-4:] == 'json':
+            date_details = pd.read_json(address)
+            print(date_details)
+            return date_details
+
+        
+        return s3_df
 
         
 
