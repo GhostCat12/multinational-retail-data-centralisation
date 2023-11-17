@@ -7,12 +7,18 @@ clean = DataCleaning()
 #cleaned_user_data = clean.clean_user_data()
 #cleaned_card_details = clean.clean_card_data()
 #cleaned_store_data = clean.clean_store_data()
-cleaned_products_data = clean.convert_product_weights()
+#convert_weights = clean.convert_product_weights()
+cleaned_product_data = clean.clean_products_data()
+
+
+## finish cleaned_product_data then put into upload db , then git add new data_cleaning method, run file updated to run new method , then extraction
 
 connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_user_data, table_name ='dim_users')
 #connect.upload_to_db(pandas_df=cleaned_card_details, table_name ='dim_cards_details')
 #connect.upload_to_db(pandas_df=cleaned_store_data, table_name ='dim_store_details')
+#connect.upload_to_db(pandas_df=cleaned_product_data, table_name ='dim_products')
+
 
 #link = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'
 
