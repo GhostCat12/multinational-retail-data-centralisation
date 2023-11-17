@@ -237,12 +237,12 @@ class DataCleaning:
         check2 = np.sort(date_details_table['month'].unique())
 
         #check erroneous across entire rows  #it is
-        mask = (date_details_table['day'].str.len() > 8)
-        check_erroneous = date_details_table.loc[mask]
+        mask1 = (date_details_table['day'].str.len() > 8)
+        check_erroneous = date_details_table.loc[mask1]
 
         #check 'NULL' across all rows       #it is
-        mask = (date_details_table['day'].str.len() == 4)
-        check_NULL = date_details_table.loc[mask]
+        mask2 = (date_details_table['day'].str.len() == 4)
+        check_NULL = date_details_table.loc[mask2]
 
         #drop all rows with erronuos columns
         date_details_table.drop(date_details_table[date_details_table['day'].str.len() > 8].index, inplace= True)
@@ -267,8 +267,6 @@ class DataCleaning:
 
         #convert year to datetime64
         date_details_table['year'] = pd.to_datetime(date_details_table['year'])
-
-        print(date_details_table)
 
         return date_details_table
         
