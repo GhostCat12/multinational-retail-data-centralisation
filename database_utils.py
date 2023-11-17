@@ -25,6 +25,7 @@ class DatabaseConnector:
         engine = self.init_db_engine()
         inspector = inspect(engine)
         table_list = inspector.get_table_names()
+        print(table_list)
         return table_list
     
     def upload_to_db(self, pandas_df, table_name):
