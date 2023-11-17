@@ -9,7 +9,7 @@ clean = DataCleaning()
 #cleaned_store_data = clean.clean_store_data()
 #convert_weights = clean.convert_product_weights()
 #cleaned_product_data = clean.clean_products_data()
-cleaned_orders_table = clean.clean_orders_data()
+#cleaned_orders_table = clean.clean_orders_data()
 
 ## finish cleaned_product_data then put into upload db , then git add new data_cleaning method, run file updated to run new method , then extraction
 
@@ -18,7 +18,7 @@ connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_card_details, table_name ='dim_cards_details')
 #connect.upload_to_db(pandas_df=cleaned_store_data, table_name ='dim_store_details')
 #connect.upload_to_db(pandas_df=cleaned_product_data, table_name ='dim_products')
-connect.upload_to_db(pandas_df=cleaned_orders_table, table_name ='orders_table')
+#connect.upload_to_db(pandas_df=cleaned_orders_table, table_name ='orders_table')
 #connect.list_db_tables()
 
 
@@ -39,8 +39,12 @@ extract = DataExtractor()
 #store_url = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/'
 #extract.retrieve_stores_data(store_url, 'api_key.yaml')
 
-#address = 's3://data-handling-public/products.csv'
-#extract.extract_from_s3(address)
+#address1 = 's3://data-handling-public/products.csv'
+#extract.extract_from_s3(address1)
+
+address2 = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json'
+
+extract.extract_from_s3(address=address2)
 
 
 
