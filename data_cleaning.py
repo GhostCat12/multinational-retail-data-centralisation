@@ -12,6 +12,7 @@ class DataCleaning:
         self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
         self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
         self.products_table =DataExtractor().extract_from_s3(address='s3://data-handling-public/products.csv')
+        self.orders_table = DataExtractor().read_rds_table('orders_table')
 
     def clean_user_data(self):
         user_df = self.rds_table
@@ -183,7 +184,7 @@ class DataCleaning:
         products_table = self.convert_product_weights()
 
         #drop unnamed column which was equal to index 
-        products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)
+        products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)                                                                                             #may have to bring this back 
 
         #rename
         products_table.rename(columns={"product_price": "product_price_£", "weight": "weight_kg"}, inplace=True)
@@ -214,3 +215,13 @@ class DataCleaning:
         products_table['EAN'] = products_table['EAN'].astype('int64')
 
         return products_table 
+    
+    
+    def clean_orders_data(self):
+        orders_table = self.orders_table
+
+        # drop first_name, last_name , 1 , level_0 , index
+        orders_table.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)
+
+        return orders_table
+
