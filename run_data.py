@@ -10,9 +10,9 @@ clean = DataCleaning()
 #convert_weights = clean.convert_product_weights()
 #cleaned_product_data = clean.clean_products_data()
 #cleaned_orders_table = clean.clean_orders_data()
-cleaned_date_details_table = clean.clean_date_details_data()
+#cleaned_date_details_table = clean.clean_date_details_data()
 
-## finish cleaned_product_data then put into upload db , then git add new data_cleaning method, run file updated to run new method , then extraction
+
 
 connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_user_data, table_name ='dim_users')
@@ -20,7 +20,7 @@ connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_store_data, table_name ='dim_store_details')
 #connect.upload_to_db(pandas_df=cleaned_product_data, table_name ='dim_products')
 #connect.upload_to_db(pandas_df=cleaned_orders_table, table_name ='orders_table')
-connect.upload_to_db(pandas_df=cleaned_date_details_table, table_name ='dim_date_times')
+#connect.upload_to_db(pandas_df=cleaned_date_details_table, table_name ='dim_date_times')
 #connect.list_db_tables()
 
 
