@@ -10,6 +10,7 @@ clean = DataCleaning()
 #convert_weights = clean.convert_product_weights()
 #cleaned_product_data = clean.clean_products_data()
 #cleaned_orders_table = clean.clean_orders_data()
+cleaned_date_Details_table = clean.clean_date_details_data()
 
 ## finish cleaned_product_data then put into upload db , then git add new data_cleaning method, run file updated to run new method , then extraction
 
@@ -42,9 +43,8 @@ extract = DataExtractor()
 #address1 = 's3://data-handling-public/products.csv'
 #extract.extract_from_s3(address1)
 
-address2 = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json'
-
-extract.extract_from_s3(address=address2)
+#address2 = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json'
+#extract.extract_from_s3(address=address2)
 
 
 
