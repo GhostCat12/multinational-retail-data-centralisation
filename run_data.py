@@ -8,8 +8,8 @@ clean = DataCleaning()
 #cleaned_card_details = clean.clean_card_data()
 #cleaned_store_data = clean.clean_store_data()
 #convert_weights = clean.convert_product_weights()
-cleaned_product_data = clean.clean_products_data()
-
+#cleaned_product_data = clean.clean_products_data()
+cleaned_orders_table = clean.clean_orders_data()
 
 ## finish cleaned_product_data then put into upload db , then git add new data_cleaning method, run file updated to run new method , then extraction
 
@@ -18,11 +18,18 @@ connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_card_details, table_name ='dim_cards_details')
 #connect.upload_to_db(pandas_df=cleaned_store_data, table_name ='dim_store_details')
 #connect.upload_to_db(pandas_df=cleaned_product_data, table_name ='dim_products')
+connect.upload_to_db(pandas_df=cleaned_orders_table, table_name ='orders_table')
+#connect.list_db_tables()
+
+
+
+extract = DataExtractor()
+#extract.read_rds_table('orders_table')
+#extract.read_rds_table('legacy_store_details')
+#extract.read_rds_table('orders_table')
 
 
 #link = 'https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf'
-
-extract = DataExtractor()
 #extract.retrieve_pdf_data(link)
 
 #number_of_stores_url = 'https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores'
