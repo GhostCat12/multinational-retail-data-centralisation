@@ -8,21 +8,11 @@ import re
 
 class DataCleaning: 
     def __init__(self):
-        #self.rds_table = DataExtractor().read_rds_table(table_name='legacy_users')
-        #self.pdf_table = DataExtractor().retrieve_pdf_data(link='https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf')
-        #self.store_table =DataExtractor().retrieve_stores_data(url='https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/', api_key='api_key.yaml')
-        #self.products_table =DataExtractor().extract_from_s3(address='s3://data-handling-public/products.csv')
-        #self.orders_table = DataExtractor().read_rds_table('orders_table')
-        self.date_Details_table = DataExtractor().extract_from_s3('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
+        self.temp = None
+        #self.date_Details_table = DataExtractor().extract_from_s3('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
 
-    def clean_user_data(self):
-        user_df = self.rds_table
-        # Clean the user data, look out for NULL values, errors with dates, incorrectly typed values and rows filled with the wrong information.
-        
-
-        # Assign index column as index and fix number order of index.                                                          # MEOW  
-        user_df['index'] = range(0,15320)
-        user_df.set_index('index', inplace=True)
+    def clean_user_data(self , table_name):
+        user_df = DataExtractor().read_rds_table(table_name)
 
 
         # DEALING WITH NULL VALUES AND INCORRECT VALUES 
@@ -37,19 +27,17 @@ class DataCleaning:
         user_df['country_code'].replace({'GGB': 'GB' }, inplace=True)
 
         # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
-        user_df.replace({'NULL': np.nan }, inplace=True)
+        user_df.replace({'NULL': np.nan , 'None': np.nan , 'NaN': np.nan}, inplace=True)
         # Check if all NaN values across same row - they are, so delete all NaN rows
         user_df.loc[user_df['country_code'].isna() == True]
-        user_df.dropna(inplace =True)
+        user_df = user_df.dropna()
 
         # To check if all incorrect values span all the way across the row by using length of uuid column - they are
         user_df['user_uuid'] = user_df['user_uuid'].astype('str')
         mask = (user_df['user_uuid'].str.len() == 10)
         check_length = user_df.loc[mask]
         # Drop rows with incorrect data
-        user_df = user_df.drop(user_df[user_df.country_code.isin(["5D74J6FPFJ", "XPVCZE2L8B" , "QREF9WLI2A", "XKI9UXSCZ1" , "RVRFD92E48",                       #MEOW 
-                                                                  "IM8MN1L9MJ" , "LZGTB0T5Z7" , "FB13AKRI21" , "OS2P9CMHR6", "NTCGYW8LVC", 
-                                                                  "PG8MOC0UZI" , "0CU6LW3NKB" , "QVUW9JSKY3" , "VSM4IZ4EL3" , "44YAIDY048"])].index)
+        user_df = user_df.drop(user_df[~user_df.country_code.isin(["GB", "DE", "US"])].index)
         
         
 
@@ -62,25 +50,34 @@ class DataCleaning:
         # Use phone number checker to check phone numbers follow correct expression, otherwise replace with NaN.
         regex_expression = '^(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|\+)44\)?[\s-]?(?:\(?0\)?[\s-]?)?)|(?:\(?0))(?:(?:\d{5}\)?[\s-]?\d{4,5})|(?:\d{4}\)?[\s-]?(?:\d{5}|\d{3}[\s-]?\d{3}))|(?:\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4})|(?:\d{2}\)?[\s-]?\d{4}[\s-]?\d{4}))(?:[\s-]?(?:x|ext\.?|\#)\d{3,4})?$' # regular expression to match
         user_df.loc[~user_df['phone_number'].str.match(regex_expression), 'phone_number'] = np.nan # For every row  where the Phone column does not match our regular expression, replace the value with NaN
-        # have not deleted NaN values, to delete: user_df.dropna(inplace=True)
+        # have not deleted NaN in phone number as it cover 1/5 of data 
+        user_df['phone_number'].isna().sum()
         
         # Set date_of_birth and join_date in date64 format
         user_df['date_of_birth'] = user_df['date_of_birth'].apply(parse)
-        user_df['date_of_birth'] = pd.to_datetime(user_df['date_of_birth'] , infer_datetime_format=True , errors='coerce' )
+        user_df['date_of_birth'] = pd.to_datetime(user_df['date_of_birth'] , errors='coerce' )
         
         user_df['join_date'] = user_df['join_date'].apply(parse)
-        user_df['join_date'] = pd.to_datetime(user_df['join_date'], infer_datetime_format=True, errors='coerce')
-        
+        user_df['join_date'] = pd.to_datetime(user_df['join_date'],  errors='coerce')
 
+        # drop index column                                                         
+        user_df.drop(['index'], axis=1, inplace=True)
+
+        #reorder columns
+        user_df = user_df[['user_uuid', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 'company', 'join_date', 'country_code']]
+
+        user_df.set_index('user_uuid', inplace=True)
+       
         return user_df
+        
     
-    def clean_card_data(self):
-        card_details = self.pdf_table
+    def clean_card_data(self, pdf_link):
+        card_details = self.pdf_table = DataExtractor().retrieve_pdf_data(pdf_link)
         
         # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
         card_details.replace({'NULL': np.nan }, inplace=True)
 
-        # remove all nulls
+        # r1emove all nulls
         card_details = card_details.dropna()
         
         card_provider_types = ["Diners Club / Carte Blanche", "American Express", "JCB 16 digit", "JCB 15 digit", 
@@ -98,23 +95,23 @@ class DataCleaning:
         card_details = card_details.dropna()
         #convert float to int type
         card_details['card_number'] = card_details['card_number'].astype('int64')
+
+        card_details.set_index('card_number', inplace=True)
         
-        print(card_details[['expiry_date','date_payment_confirmed']], '\n\n', card_details.info())
         return card_details
     
     
-    def clean_store_data(self):
-        stores_data = self.store_table
-        
-        #stores_data['index'] = range(1,451)
-        stores_data.set_index('index', inplace =True)                                                                                                                                                                   #meow
+    def clean_store_data(self, store_url, api_key):
+        stores_data = DataExtractor().retrieve_stores_data(store_url, api_key)
+
+        stores_data.drop(['index'], axis=1, inplace=True) 
 
         # Reorder columns
         stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date' , 'lat']]
         
         # Replace all 'NULL' and 'None' to np.nan
         stores_data.replace({'NULL': np.nan , 'None': np.nan}, inplace=True)
-        stores_data['lat']
+        
         # Drop all non-NaN erroneous values found across all rows
         stores_data = stores_data.drop(stores_data[(~stores_data['lat'].isna())].index)
         # Drop 'Lat' column
@@ -139,13 +136,13 @@ class DataCleaning:
         stores_data['opening_date'] = stores_data['opening_date'].apply(parse)
         stores_data['opening_date'] = pd.to_datetime(stores_data['opening_date'], errors = 'coerce')
 
-        # set imdex to number of rows 
-        stores_data = stores_data.set_axis(range(1,len(stores_data)+1))
+        stores_data.set_index('store_code', inplace=True)
+
         return stores_data
 
 
-    def convert_product_weights(self):
-        products_table = self.products_table
+    def convert_product_weights(self, address):
+        products_table = DataExtractor().extract_from_s3(address)
         
 
         # get rid of erroueous values by dropping any length of string = 10.  
@@ -161,7 +158,7 @@ class DataCleaning:
         #split numbers and letter in weights into a list 
         products_table['weight'] = products_table['weight'].apply(lambda x: re.split(r"([a-zA-Z]+)" , x)) 
 
-        def t(lists):
+        def convert_weights(lists):
             if 'x' in lists: # checks each list inside each row
                 convert = float(lists[0]) * float(lists[2])/1000 # the formula to convert into single value kg 
                 return convert
@@ -175,14 +172,14 @@ class DataCleaning:
                 return convert_grams
             
         #apply above func
-        products_table['weight'] = products_table['weight'].apply(t)
+        products_table['weight'] = products_table['weight'].apply(convert_weights)
 
         products_table['weight'] = products_table['weight'].round(6)
 
         return products_table
     
-    def clean_products_data(self):
-        products_table = self.convert_product_weights()
+    def clean_products_data(self, address):
+        products_table = self.convert_product_weights(address)
 
         #drop unnamed column which was equal to index 
         products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)                                                                                             #may have to bring this back 
@@ -215,19 +212,21 @@ class DataCleaning:
 
         products_table['EAN'] = products_table['EAN'].astype('int64')
 
+        products_table.set_index('product_code', inplace=True)
+
         return products_table 
+   
     
-    
-    def clean_orders_data(self):
-        orders_table = self.orders_table
+    def clean_orders_data(self, table_name):
+        orders_table = DataExtractor().read_rds_table(table_name)
 
         # drop first_name, last_name , 1 , level_0 , index
         orders_table.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)
 
         return orders_table
     
-    def clean_date_details_data(self):
-        date_details_table = self.date_Details_table
+    def clean_date_details_data(self, address):
+        date_details_table = DataExtractor().extract_from_s3(address)
 
         #reorder table columns 
         date_details_table = date_details_table[['date_uuid', 'year', 'month', 'day', 'time_period', 'timestamp']]
@@ -252,9 +251,6 @@ class DataCleaning:
         date_details_table.dropna(inplace=True)
         date_details_table.isnull().any(axis=0)
 
-        #convert timestamp to datetime[64]
-        date_details_table['timestamp'] = pd.to_datetime(date_details_table['timestamp'], format = '%H:%M:%S')
-        date_details_table['timestamp'].info()
 
         #Convert singular months to have zero at the start 
         def month_convert(x):
@@ -265,9 +261,8 @@ class DataCleaning:
 
         date_details_table['month']= date_details_table['month'].apply(month_convert)
 
-        #convert year to datetime64
-        date_details_table['year'] = pd.to_datetime(date_details_table['year'])
-
+        date_details_table.set_index('date_uuid', inplace=True)
+    
         return date_details_table
         
 
