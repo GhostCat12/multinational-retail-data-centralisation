@@ -1,20 +1,24 @@
 from data_extraction import DataExtractor
+from database_utils import DatabaseConnector
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
 import re
+from sqlalchemy import text
+
 
 
 
 class DataCleaning: 
     def __init__(self):
+        # how to leave this empty without an error occuring everytiem 
         self.temp = None
-        #self.date_Details_table = DataExtractor().extract_from_s3('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
+
 
     def clean_user_data(self , table_name):
         user_df = DataExtractor().read_rds_table(table_name)
 
-
+        
         # DEALING WITH NULL VALUES AND INCORRECT VALUES 
         
         # This shows 21 'NULL' values and 15 instances of incorrect data
@@ -77,7 +81,7 @@ class DataCleaning:
         # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
         card_details.replace({'NULL': np.nan }, inplace=True)
 
-        # r1emove all nulls
+        # remove all nulls
         card_details = card_details.dropna()
         
         card_provider_types = ["Diners Club / Carte Blanche", "American Express", "JCB 16 digit", "JCB 15 digit", 
@@ -222,11 +226,10 @@ class DataCleaning:
 
         # drop first_name, last_name , 1 , level_0 , index
         orders_table.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)
-
         return orders_table
     
     def clean_date_details_data(self, address):
-        date_details_table = DataExtractor().extract_from_s3(address)
+        date_details_table = DataExtractor().extract_from_s3(address) # ew
 
         #reorder table columns 
         date_details_table = date_details_table[['date_uuid', 'year', 'month', 'day', 'time_period', 'timestamp']]
@@ -260,17 +263,42 @@ class DataCleaning:
                 return x
 
         date_details_table['month']= date_details_table['month'].apply(month_convert)
-
         date_details_table.set_index('date_uuid', inplace=True)
-    
+
         return date_details_table
+    
+    def change_data_types(self):
+        engine = DatabaseConnector().init_local_db_engine()
+        with engine.execution_options(isolation_level='AUTOCOMMIT').connect() as conn:
         
+            conn.execute(text('''
+                              ALTER TABLE orders_table ALTER COLUMN date_uuid TYPE uuid USING date_uuid::uuid;
+                              ALTER TABLE orders_table ALTER COLUMN user_uuid TYPE uuid USING user_uuid::uuid;
+                              ALTER TABLE orders_table ALTER COLUMN card_number TYPE VARCHAR(19);
+                              ALTER TABLE orders_table ALTER COLUMN store_code TYPE VARCHAR(12);
+                              ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(12);
+                              ALTER TABLE orders_table ALTER COLUMN product_quantity TYPE SMALLINT;
+
+                              ALTER TABLE dim_users ALTER COLUMN first_name TYPE VARCHAR(255);
+                              ALTER TABLE dim_users ALTER COLUMN last_name TYPE VARCHAR(255);
+                              ALTER TABLE dim_users ALTER COLUMN date_of_birth TYPE DATE;
+                              ALTER TABLE dim_users ALTER COLUMN country_code TYPE VARCHAR(2);
+                              ALTER TABLE dim_users ALTER COLUMN user_uuid TYPE uuid USING user_uuid::uuid;
+                              ALTER TABLE dim_users ALTER COLUMN join_date TYPE DATE;
+
+                              ALTER TABLE dim_store_details ALTER COLUMN longitude TYPE FLOAT;
+                              ALTER TABLE dim_store_details ALTER COLUMN locality TYPE VARCHAR(255);
+                              ALTER TABLE dim_store_details ALTER COLUMN store_code TYPE VARCHAR(12);
+                              ALTER TABLE dim_store_details ALTER COLUMN staff_numbers TYPE SMALLINT;
+                              ALTER TABLE dim_store_details ALTER COLUMN opening_date TYPE DATE;
+                              ALTER TABLE dim_store_details ALTER COLUMN store_type TYPE VARCHAR(255);
+                              ALTER TABLE dim_store_details ALTER COLUMN store_type VARCHAR(255) NULL;
+                              ALTER TABLE dim_store_details ALTER COLUMN latitude TYPE FLOAT;
+                              ALTER TABLE dim_store_details ALTER COLUMN country_code TYPE VARCHAR(2);
+                              ALTER TABLE dim_store_details ALTER COLUMN continent TYPE VARCHAR(255)
 
 
+                              ''')) 
 
-
-
-
-
-
+            #print(user_df['country_code'].astype(str).len().max())
 
