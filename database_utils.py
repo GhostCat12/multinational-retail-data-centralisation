@@ -9,7 +9,7 @@ class DatabaseConnector:
         self.temp = None    
     
     # Reads credentials yaml file and returns a dictionary of credentials 
-    def read_db_creds(self):
+    def read_db_creds(self): 
         with open('db_creds.yaml' , 'r') as file:
             load_as_dict = yaml.safe_load(file) 
             return load_as_dict
@@ -24,16 +24,21 @@ class DatabaseConnector:
     def list_db_tables(self):
         engine = self.init_db_engine()
         inspector = inspect(engine)
-        table_list = inspector.get_table_names()
-        print(table_list)
-        return table_list
+        list_of_table_names = inspector.get_table_names()
+        print(list_of_table_names)
     
-    def upload_to_db(self, pandas_df, table_name):
-        with open('sales_data_creds.yaml' , 'r') as file:
+    def init_local_db_engine(self):
+        with open('sales_data_creds.yaml' , 'r') as file: # yaml file containing credentials
             local_creds = yaml.safe_load(file) 
                  
         local_engine = create_engine(f"{'postgresql'}+{'psycopg2'}://{local_creds['LOCAL_USER']}:{local_creds['LOCAL_PASSWORD']}@{'localhost'}:{'5432'}/{'sales_data'}")
+        return local_engine
+
+    def upload_to_db(self, pandas_df, table_name):
+        local_engine = self.init_local_db_engine()
         pandas_df.to_sql(table_name, local_engine, if_exists='replace')
+    
+
         
 
 # method in DatabaseConnector class called upload_to_db. This method will take in a Pandas DataFrame and table name to upload to as an argument.
