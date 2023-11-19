@@ -32,6 +32,8 @@ class DatabaseConnector:
             local_creds = yaml.safe_load(file) 
                  
         local_engine = create_engine(f"{'postgresql'}+{'psycopg2'}://{local_creds['LOCAL_USER']}:{local_creds['LOCAL_PASSWORD']}@{'localhost'}:{'5432'}/{'sales_data'}")
+        
+        
         return local_engine
 
     def upload_to_db(self, pandas_df, table_name):
