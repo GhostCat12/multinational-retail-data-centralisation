@@ -169,8 +169,6 @@ class DataCleaning:
     def clean_products_data(self, address):
         products_table = self.convert_product_weights(address)
 
-        
-
         #drop unnamed column which was equal to index 
         products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)                                                                                             #may have to bring this back 
 
