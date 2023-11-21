@@ -87,18 +87,6 @@ class DataCleaning:
         card_provider_types = ["Diners Club / Carte Blanche", "American Express", "JCB 16 digit", "JCB 15 digit", 
                                "Maestro", "Mastercard", "Discover", "VISA 19 digit", "VISA 16 digit", "VISA 13 digit"]
         card_details = card_details.drop(card_details[~card_details['card_provider'].isin(card_provider_types)].index)
-        
-
-        #convert to datetime64
-        card_details['date_payment_confirmed'] = card_details['date_payment_confirmed'].apply(parse)
-        card_details['date_payment_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
-    
-        #convert card_numbers that can convert to int64 , will return them as floats
-        card_details['card_number'] = pd.to_numeric(card_details['card_number'], errors = 'coerce')
-        #drop NaN's 
-        card_details = card_details.dropna()
-        #convert float to int type
-        card_details['card_number'] = card_details['card_number'].astype('int64')
 
         card_details.set_index('card_number', inplace=True)
         
