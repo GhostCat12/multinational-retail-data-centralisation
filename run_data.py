@@ -10,14 +10,13 @@ clean = DataCleaning()
 #convert_weights = clean.convert_product_weights('s3://data-handling-public/products.csv')
 #cleaned_product_data = clean.clean_products_data('s3://data-handling-public/products.csv')
 #cleaned_orders_table = clean.clean_orders_data('orders_table')
-clean.change_data_types()
 #cleaned_date_details_table = clean.clean_date_details_data('https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json')
 
 
 #3
 connect = DatabaseConnector()
 #connect.upload_to_db(pandas_df=cleaned_user_data, table_name ='dim_users')
-#connect.upload_to_db(pandas_df=cleaned_card_details, table_name ='dim_cards_details')
+#connect.upload_to_db(pandas_df=cleaned_card_details, table_name ='dim_card_details')
 #connect.upload_to_db(pandas_df=cleaned_store_data, table_name ='dim_store_details')
 #connect.upload_to_db(pandas_df=cleaned_product_data, table_name ='dim_products')
 #connect.upload_to_db(pandas_df=cleaned_orders_table, table_name ='orders_table')
