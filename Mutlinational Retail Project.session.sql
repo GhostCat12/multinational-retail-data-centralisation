@@ -29,6 +29,7 @@ ALTER TABLE dim_store_details ALTER COLUMN continent TYPE VARCHAR(255);
 /*# There is a row that represents the business's website change the location column values where they're null to N/A.*/
 UPDATE dim_store_details SET locality = coalesce(locality, 'N/A');
 UPDATE dim_store_details SET address = coalesce(address, 'N/A');
+/* Keep latitude and longitude column values as null */
 
                               
 /*commemt */  
