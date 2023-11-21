@@ -76,18 +76,18 @@ class DataCleaning:
         
     
     def clean_card_data(self, pdf_link):
-        card_details = self.pdf_table = DataExtractor().retrieve_pdf_data(pdf_link)
+        card_details = DataExtractor().retrieve_pdf_data(pdf_link)
         
-        # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
-        card_details.replace({'NULL': np.nan }, inplace=True)
-
+        # Replace 'NULL' with np.nan values, and remove question marks. 
+        card_details.replace({'NULL': np.nan, "\?": ""}, regex=True, inplace=True)
         # remove all nulls
         card_details = card_details.dropna()
-        
-        card_provider_types = ["Diners Club / Carte Blanche", "American Express", "JCB 16 digit", "JCB 15 digit", 
-                               "Maestro", "Mastercard", "Discover", "VISA 19 digit", "VISA 16 digit", "VISA 13 digit"]
-        card_details = card_details.drop(card_details[~card_details['card_provider'].isin(card_provider_types)].index)
-
+        # filter dataframe to remove all erronous values across rows using expiry data column. 
+        card_details = card_details[card_details['expiry_date'].astype(str).str.len() < 6]
+        # convert to datetime64
+        card_details['date_payment_confirmed'] = card_details['date_payment_confirmed'].apply(parse)
+        card_details['date_payment_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
+        # set index to 'card_number' column
         card_details.set_index('card_number', inplace=True)
         
         return card_details
