@@ -20,11 +20,10 @@ class DataExtractor:
         return table_name
 
     def retrieve_pdf_data(self, link):
-        pdf_df_list = tabula.read_pdf(link, pages ='all', lattice=True) # outputs list of dataframes
-        pdf_df=pd.DataFrame()
-        for df in pdf_df_list:
-            pdf_df = pd.concat([pdf_df, df], axis=0, ignore_index=True) 
-        return pdf_df
+        pdf_link = link
+        link_read = tabula.read_pdf(pdf_link,pages='all')
+        link_df = pd.concat(link_read)
+        return link_df
     
     def list_number_of_stores(self, url , api_key):
         with open(api_key , 'r') as file:
