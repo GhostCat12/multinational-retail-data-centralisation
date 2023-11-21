@@ -91,7 +91,7 @@ class DataCleaning:
 
         #convert to datetime64
         card_details['date_payment_confirmed'] = card_details['date_payment_confirmed'].apply(parse)
-        card_details['date_paystores_datament_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
+        card_details['date_payment_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )
     
         #convert card_numbers that can convert to int64 , will return them as floats
         card_details['card_number'] = pd.to_numeric(card_details['card_number'], errors = 'coerce')
@@ -108,40 +108,24 @@ class DataCleaning:
     def clean_store_data(self, store_url, api_key):
         stores_data = DataExtractor().retrieve_stores_data(store_url, api_key)
 
-        stores_data.drop(['index'], axis=1, inplace=True) 
-
-        # Reorder columns
-        stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date' , 'lat']]
-        
-        # Replace all 'NULL' and 'None' to np.nan
-        stores_data.replace({'NULL': np.nan , 'None': np.nan}, inplace=True)
-        
-        # Drop all non-NaN erroneous values found across all rows
-        stores_data = stores_data.drop(stores_data[(~stores_data['lat'].isna())].index)
-        # Drop 'Lat' column
-        stores_data.drop(['lat'], axis=1, inplace=True)
-        # Drop all rows with NaN values
-        stores_data = stores_data.dropna()
-
+        # Redorder columns and remove 'index' and 'lat' columns 
+        stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date']]
+        # Set index to store_code
+        stores_data.set_index('store_code', inplace=True)
+        # Removes null and erroneous values that run across entire rows
+        stores_data = stores_data.drop(stores_data[~stores_data['country_code'].isin(['GB' , 'DE', 'US'])].index)
+        # Replaces erronous values with correct continent
+        stores_data['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)
         # Replace '\n' with a comma in 'address' column 
         stores_data['address'] = stores_data['address'].replace(r'\n' ,', ',regex=True)
-        # Replace mistyped continents with correct continent
-        stores_data['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)
-
-        # Change 'staff_numbers' Dtype to int64
+        # removes any erronous alphabet characters within values 
         stores_data['staff_numbers'] = stores_data['staff_numbers'].str.replace('\D', '', regex=True)
-        stores_data['staff_numbers'] = stores_data['staff_numbers'].astype('int64')
-
-        # Change 'latitude' and 'logitude' column dtypes to float32 and round to 3 decimal places
-        stores_data['latitude'] = stores_data['latitude'].astype('float32').round(3)
-        stores_data['longitude'] = stores_data['longitude'].astype('float64').round(3)
-
+        #stores_data['staff_numbers'] = stores_data['staff_numbers'].astype('int64')
         # Change 'opening_date' column Dtype to datetime64
         stores_data['opening_date'] = stores_data['opening_date'].apply(parse)
         stores_data['opening_date'] = pd.to_datetime(stores_data['opening_date'], errors = 'coerce')
-
-        stores_data.set_index('store_code', inplace=True)
-
+        #replace N/A to np.nan
+        stores_data = stores_data.replace({'N/A': np.nan, 'None': np.nan })
         return stores_data
 
 
@@ -185,6 +169,8 @@ class DataCleaning:
     def clean_products_data(self, address):
         products_table = self.convert_product_weights(address)
 
+        
+
         #drop unnamed column which was equal to index 
         products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)                                                                                             #may have to bring this back 
 
@@ -216,7 +202,9 @@ class DataCleaning:
 
         products_table['EAN'] = products_table['EAN'].astype('int64')
 
-        products_table.set_index('product_code', inplace=True)
+        #products_table.set_index('product_code', inplace=True)
+
+        products_table['removed'] = products_table['removed'].replace('Still_avaliable','still_available')
 
         return products_table 
    
@@ -267,37 +255,5 @@ class DataCleaning:
 
         return date_details_table
     
-    def change_data_types(self):
-        engine = DatabaseConnector().init_local_db_engine()
-        with engine.execution_options(isolation_level='AUTOCOMMIT').connect() as conn:
-        
-            conn.execute(text('''
-                              ALTER TABLE orders_table ALTER COLUMN date_uuid TYPE uuid USING date_uuid::uuid;
-                              ALTER TABLE orders_table ALTER COLUMN user_uuid TYPE uuid USING user_uuid::uuid;
-                              ALTER TABLE orders_table ALTER COLUMN card_number TYPE VARCHAR(19);
-                              ALTER TABLE orders_table ALTER COLUMN store_code TYPE VARCHAR(12);
-                              ALTER TABLE orders_table ALTER COLUMN product_code TYPE VARCHAR(12);
-                              ALTER TABLE orders_table ALTER COLUMN product_quantity TYPE SMALLINT;
-
-                              ALTER TABLE dim_users ALTER COLUMN first_name TYPE VARCHAR(255);
-                              ALTER TABLE dim_users ALTER COLUMN last_name TYPE VARCHAR(255);
-                              ALTER TABLE dim_users ALTER COLUMN date_of_birth TYPE DATE;
-                              ALTER TABLE dim_users ALTER COLUMN country_code TYPE VARCHAR(2);
-                              ALTER TABLE dim_users ALTER COLUMN user_uuid TYPE uuid USING user_uuid::uuid;
-                              ALTER TABLE dim_users ALTER COLUMN join_date TYPE DATE;
-
-                              ALTER TABLE dim_store_details ALTER COLUMN longitude TYPE FLOAT;
-                              ALTER TABLE dim_store_details ALTER COLUMN locality TYPE VARCHAR(255);
-                              ALTER TABLE dim_store_details ALTER COLUMN store_code TYPE VARCHAR(12);
-                              ALTER TABLE dim_store_details ALTER COLUMN staff_numbers TYPE SMALLINT;
-                              ALTER TABLE dim_store_details ALTER COLUMN opening_date TYPE DATE;
-                              ALTER TABLE dim_store_details ALTER COLUMN store_type TYPE VARCHAR(255);
-                              ALTER TABLE dim_store_details ALTER COLUMN latitude TYPE FLOAT;
-                              ALTER TABLE dim_store_details ALTER COLUMN country_code TYPE VARCHAR(2);
-                              ALTER TABLE dim_store_details ALTER COLUMN continent TYPE VARCHAR(255)
-
-
-                              ''')) 
-
-            #print(user_df['country_code'].astype(str).len().max())
+    
 
