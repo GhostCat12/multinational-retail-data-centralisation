@@ -35,7 +35,7 @@ class DataExtractor:
         
     def retrieve_stores_data(self, url,api_key):
         list_of_dicts=[]
-        for store_number in range(1, 451):
+        for store_number in range(0, 451):
             with open(api_key , 'r') as file:
                 headers = yaml.safe_load(file)
                 response = requests.get(f"{url}{store_number}", headers=headers)
