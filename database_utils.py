@@ -35,7 +35,8 @@ class DatabaseConnector:
         
         
         return local_engine
-
+    
+    #upload cleaaned table to database
     def upload_to_db(self, pandas_df, table_name):
         local_engine = self.init_local_db_engine()
         pandas_df.to_sql(table_name, local_engine, if_exists='replace')
