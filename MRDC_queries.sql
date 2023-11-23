@@ -5,7 +5,7 @@ SELECT
 	DISTINCT(country_code),
 	COUNT(country_code)
 FROM dim_store_details 
-GROUP BY country_code
+GROUP BY country_code;
 
 /* output: 
 "DE"	141
@@ -25,7 +25,7 @@ SELECT
 FROM dim_store_details 
 GROUP BY locality
 ORDER BY COUNT(locality) DESC
-LIMIT 10
+LIMIT 10;
 
 /* output:
 "Chapletown"	14
@@ -54,7 +54,7 @@ FROM dim_date_times
 		ON orders_table.product_code = dim_products.product_code
 GROUP BY "month"
 ORDER BY SUM("product_price_£" * "product_quantity") DESC
-LIMIT 6
+LIMIT 6;
 
 /* output:
 "08"	673295.679999988
@@ -78,7 +78,7 @@ SELECT
 FROM orders_table
 FULL OUTER JOIN dim_products
 	ON orders_table.product_code = dim_products.product_code
-GROUP BY "store_code" = 'WEB-1388012W'
+GROUP BY "store_code" = 'WEB-1388012W';
 
 /* Output 
 Location   product_quantity_count 	number_of_sales
@@ -107,7 +107,7 @@ SELECT
 	store_type,
 	total_sales,
 	total_sales * 100 / (SELECT SUM(total_sales) FROM t) as percentage
-FROM t	
+FROM t;
 
 /*
 store_type   	   total_sales  	  percentage
@@ -132,7 +132,7 @@ FULL OUTER JOIN dim_date_times
 FULL OUTER JOIN dim_products
  ON orders_table.product_code = dim_products.product_code
 GROUP BY "year", "month"
-ORDER BY total_sales DESC
+ORDER BY total_sales DESC;
 
 /* 
 total_sales              year   month
@@ -158,7 +158,7 @@ dim_store_details.country_code
 FROM orders_table
 FULL OUTER JOIN dim_store_details
 	ON orders_table.store_code = dim_store_details.store_Code                          ### 	QUESTION THIS 	###
-GROUP BY dim_store_details.country_code
+GROUP BY dim_store_details.country_code;
 
 /*
 total_staff_numbers  Country
@@ -179,7 +179,7 @@ FULL OUTER JOIN dim_store_details
 FULL OUTER JOIN dim_products
 	ON orders_table.product_Code = dim_products.product_Code
 WHERE "country_code" = 'DE'
-GROUP by store_type, country_code
+GROUP by store_type, country_code;
 
 /*
 total_sales         store_type      country_code
@@ -193,3 +193,48 @@ total_sales         store_type      country_code
 /*Sales would like the get an accurate metric for how quickly the company is making sales.
 Determine the average time taken between each sale grouped by year*/
 
+with combine_datetime("year","month","day","timestamp",full_date_time)
+as (
+	SELECT 
+	"year",
+	"month",
+	"day",
+	"timestamp",
+	TO_TIMESTAMP(("year" || '-' || "month" || '-' || "day" || ' ' || "timestamp"), 'YYYY-MM-DD HH24:MI:SS.MS')::timestamp without time zone AS full_date_time
+	FROM dim_date_times
+	),
+	
+next_time("year", full_date_time, next_timestamp)
+as (
+	SELECT
+		"year",
+		full_date_time,
+	LEAD(full_date_time, 1 ) OVER (ORDER BY full_date_time) AS next_timestamp
+	FROM combine_datetime
+),
+
+avg_time_difference("year", date_difference)
+as (
+
+	SELECT 
+		"year",
+		AVG((next_timestamp - full_date_time)) as date_difference	
+	FROM next_time 
+	GROUP BY "year"
+)
+SELECT 
+"year",
+	CONCAT('hours: ' , CAST(DATE_PART('hour' , "date_difference") as VARCHAR),
+		   ',  minutes: ' , CAST(DATE_PART('minute' , "date_difference") as VARCHAR),
+		   ',  seconds: ' , CAST(ROUND(extract('second' FROM "date_difference"), 3) as VARCHAR)
+		  )
+FROM avg_time_difference
+ORDER BY date_difference DESC
+LIMIT 5;
+
+/*  output
+"2013"	"hours: 2,  minutes: 17,  seconds: 15.655"
+"1993"	"hours: 2,  minutes: 15,  seconds: 40.130"
+"2002"	"hours: 2,  minutes: 13,  seconds: 49.478"
+"2008"	"hours: 2,  minutes: 13,  seconds: 3.532"
+"2022"	"hours: 2,  minutes: 13,  seconds: 2.004" */
