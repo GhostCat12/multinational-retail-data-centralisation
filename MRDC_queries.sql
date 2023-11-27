@@ -157,7 +157,7 @@ SUM(staff_numbers) AS total_staff_numbers,
 dim_store_details.country_code
 FROM orders_table
 FULL OUTER JOIN dim_store_details
-	ON orders_table.store_code = dim_store_details.store_Code                          ### 	QUESTION THIS 	###
+	ON orders_table.store_code = dim_store_details.store_code
 GROUP BY dim_store_details.country_code;
 
 /*
@@ -177,7 +177,7 @@ FROM orders_table
 FULL OUTER JOIN dim_store_details
 	ON orders_table.store_code = dim_store_details.store_code
 FULL OUTER JOIN dim_products
-	ON orders_table.product_Code = dim_products.product_Code
+	ON orders_table.product_code = dim_products.product_code
 WHERE "country_code" = 'DE'
 GROUP by store_type, country_code;
 
@@ -187,13 +187,13 @@ total_sales         store_type      country_code
 247634.20000000042	"Mall Kiosk"	"DE"
 1109909.5899999617	"Local"	        "DE"
 198373.57000000039	"Outlet"	    "DE"
-*/
+*/;
 
 
 /*Sales would like the get an accurate metric for how quickly the company is making sales.
 Determine the average time taken between each sale grouped by year*/
 
-with combine_datetime("year","month","day","timestamp",full_date_time)
+with combine_datetime("year","month","day","timestamp",full_date_time)     /*combines year, month, day, timestamp columns into a datetime format*/
 as (
 	SELECT 
 	"year",
@@ -204,7 +204,7 @@ as (
 	FROM dim_date_times
 	),
 	
-next_time("year", full_date_time, next_timestamp)
+next_time("year", full_date_time, next_timestamp)     /* creates column holding datetime of next row */
 as (
 	SELECT
 		"year",
@@ -213,7 +213,7 @@ as (
 	FROM combine_datetime
 ),
 
-avg_time_difference("year", date_difference)
+avg_time_difference("year", date_difference)    /* find time difference between initial datetime column and next row column */
 as (
 
 	SELECT 
@@ -222,17 +222,18 @@ as (
 	FROM next_time 
 	GROUP BY "year"
 )
-SELECT 
+SELECT     /* separates date and time into required output format  */
 "year",
 	CONCAT('hours: ' , CAST(DATE_PART('hour' , "date_difference") as VARCHAR),
 		   ',  minutes: ' , CAST(DATE_PART('minute' , "date_difference") as VARCHAR),
-		   ',  seconds: ' , CAST(ROUND(extract('second' FROM "date_difference"), 3) as VARCHAR)
-		  )
+		   ',  seconds: ' , CAST(ROUND(EXTRACT('second' FROM "date_difference"), 3) as VARCHAR)
+		  ) as actual_time_taken
 FROM avg_time_difference
 ORDER BY date_difference DESC
 LIMIT 5;
 
-/*  output
+/*  output:
+"year"   "actual_time_taken"
 "2013"	"hours: 2,  minutes: 17,  seconds: 15.655"
 "1993"	"hours: 2,  minutes: 15,  seconds: 40.130"
 "2002"	"hours: 2,  minutes: 13,  seconds: 49.478"
