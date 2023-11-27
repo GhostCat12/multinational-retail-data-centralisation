@@ -1,23 +1,54 @@
-from data_extraction import DataExtractor
-from database_utils import DatabaseConnector
 import pandas as pd
 import numpy as np
 from dateutil.parser import parse
 import re
 
 
-
-
 class DataCleaning: 
-    def __init__(self):                                    
-        self.temp = None                                                        #### How to leave this empty without an error occuring everytiem   ####
 
+    """
+    A class for cleaning and preprocessing various types of data.
 
-    def clean_user_data(self , table_name):
-        user_df = DataExtractor().read_rds_table(table_name)
-       
+    Methods
+    -------
+    clean_user_data(user_df)
+        Cleans and preprocesses user data.
 
-        user_df['country_code'].replace({'GGB': 'GB' }, inplace=True)  # 'GGB' typo refers to united kingdom in all 6 rows, therefore replace to GB 
+    clean_card_data(card_details_df)
+        Cleans and preprocesses card details data.
+
+    clean_store_data(stores_data_df)
+        Cleans and preprocesses store data.
+
+    convert_product_weights(products_data_df)
+        Converts product weights to a standardized format.
+
+    clean_products_data(products_data_df)
+        Cleans and preprocesses products data.
+
+    clean_orders_data(orders_data_df)
+        Cleans and preprocesses orders data.
+
+    clean_date_details_data(date_details_df)
+        Cleans and preprocesses date details data.
+    """
+
+    def clean_user_data(self, user_df):
+        """
+        Cleans and preprocesses user data.
+
+        Parameters
+        ----------
+        user_df : pandas.DataFrame
+            The input user data DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed user data.
+        """
+                
+        user_df['country_code'].replace({'GGB': 'GB'}, inplace=True)  # 'GGB' typo refers to united kingdom in all 6 rows, therefore replace to GB 
         user_df.replace({'NULL': np.nan , 'None': np.nan , 'NaN': np.nan}, inplace=True)  # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
         user_df = user_df.dropna()  # NaN values run across entire row, so delete all NaN rows        
         user_df = user_df.drop(user_df[~user_df.country_code.isin(["GB", "DE", "US"])].index)   # All errounous values run across entire row. Using country_code column drop rows with incorrect data
@@ -38,53 +69,86 @@ class DataCleaning:
         return user_df
         
     
-    def clean_card_data(self, pdf_link):
-        card_details = DataExtractor().retrieve_pdf_data(pdf_link)
+    def clean_card_data(self, card_details_df):
+        """
+        Cleans and preprocesses card details data.
+
+        Parameters
+        ----------
+        card_details_df : pandas.DataFrame
+            The input card details data DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed card details data.
+        """
+
+        card_details_df.replace({'NULL': np.nan, "\?": ""}, regex=True, inplace=True)  # Replace 'NULL' with np.nan values, and remove question marks. 
+        card_details_df = card_details_df.dropna()   # Remove all nulls
+        card_details_df = card_details_df[card_details_df['expiry_date'].astype(str).str.len() < 6]   # Filter dataframe to remove all erronous values across rows using expiry data column. 
         
+        card_details_df['date_payment_confirmed'] = card_details_df['date_payment_confirmed'].apply(parse)
+        card_details_df['date_payment_confirmed'] = pd.to_datetime(card_details_df['date_payment_confirmed'] , errors='coerce' )  # Convert to datetime64
+        
+        card_details_df.set_index('card_number', inplace=True)  # Set index to 'card_number' column
+        
+        return card_details_df
     
-        card_details.replace({'NULL': np.nan, "\?": ""}, regex=True, inplace=True)  # Replace 'NULL' with np.nan values, and remove question marks. 
-        card_details = card_details.dropna()   # Remove all nulls
-        card_details = card_details[card_details['expiry_date'].astype(str).str.len() < 6]   # Filter dataframe to remove all erronous values across rows using expiry data column. 
-        
-        card_details['date_payment_confirmed'] = card_details['date_payment_confirmed'].apply(parse)
-        card_details['date_payment_confirmed'] = pd.to_datetime(card_details['date_payment_confirmed'] , errors='coerce' )  # Convert to datetime64
-        
-        card_details.set_index('card_number', inplace=True)  # Set index to 'card_number' column
-        
-        return card_details
     
-    
-    def clean_store_data(self, store_url, api_key):
-        stores_data = DataExtractor().retrieve_stores_data(store_url, api_key)
+    def clean_store_data(self, stores_data_df):
+        """
+        Cleans and preprocesses store data.
 
+        Parameters
+        ----------
+        stores_data_df : pandas.DataFrame
+            The input store data DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed store data.
+        """
+
+        stores_data_df = stores_data_df[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date']] # Redorder columns and remove 'index' and 'lat' columns 
+        stores_data_df.set_index('store_code', inplace=True)  # Set index to store_code
         
-        stores_data = stores_data[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date']] # Redorder columns and remove 'index' and 'lat' columns 
-        stores_data.set_index('store_code', inplace=True)  # Set index to store_code
+        stores_data_df = stores_data_df.drop(stores_data_df[~stores_data_df['country_code'].isin(['GB' , 'DE', 'US'])].index) # Removes null and erroneous values which run across entire rows
+        stores_data_df['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)  # Replaces erronous values with correct continent
+        stores_data_df['address'] = stores_data_df['address'].replace(r'\n' ,', ',regex=True)  # Replace '\n' with a comma in 'address' column 
+        stores_data_df['staff_numbers'] = stores_data_df['staff_numbers'].str.replace('\D', '', regex=True) # Removes any erronous alphabet characters within values 
+        stores_data_df = stores_data_df.replace({'N/A': np.nan, 'None': np.nan }) # Replace all null types to np.nan
         
-        stores_data = stores_data.drop(stores_data[~stores_data['country_code'].isin(['GB' , 'DE', 'US'])].index) # Removes null and erroneous values which run across entire rows
-        stores_data['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)  # Replaces erronous values with correct continent
-        stores_data['address'] = stores_data['address'].replace(r'\n' ,', ',regex=True)  # Replace '\n' with a comma in 'address' column 
-        stores_data['staff_numbers'] = stores_data['staff_numbers'].str.replace('\D', '', regex=True) # Removes any erronous alphabet characters within values 
-        stores_data = stores_data.replace({'N/A': np.nan, 'None': np.nan }) # Replace all null types to np.nan
-        
-        stores_data['opening_date'] = stores_data['opening_date'].apply(parse)
-        stores_data['opening_date'] = pd.to_datetime(stores_data['opening_date'], errors = 'coerce') # Change 'opening_date' column Dtype to datetime64
+        stores_data_df['opening_date'] = stores_data_df['opening_date'].apply(parse)
+        stores_data_df['opening_date'] = pd.to_datetime(stores_data_df['opening_date'], errors = 'coerce') # Change 'opening_date' column Dtype to datetime64
 
-        return stores_data
+        return stores_data_df
 
 
-    def convert_product_weights(self, address):
-        products_table = DataExtractor().extract_from_s3(address)
-        
+    def convert_product_weights(self, products_data_df):
+        """
+        Converts product weights to a standardized format.
 
-        products_table = products_table.drop(products_table[products_table['weight'].str.len() == 10].index)  # Remove erroueous values where length of string = 10 using weight column
-        products_table['weight'].replace({'nan': np.nan , 'NULL': np.nan , '?': np.nan , 'NaN':np.nan})   # Replace all null types to np.nan
-        products_table.dropna(inplace=True, subset='weight')  # Drop nulls in weight column
+        Parameters
+        ----------
+        products_data_df : pandas.DataFrame
+            The input products data DataFrame.
 
-        products_table['weight'] = products_table['weight'].str.replace('ml','g')  # Convert ml to grams
+        Returns
+        -------
+        pandas.DataFrame
+            Products data with standardized weight format.
+        """
+
+        products_data_df = products_data_df.drop(products_data_df[products_data_df['weight'].str.len() == 10].index)  # Remove erroueous values where length of string = 10 using weight column
+        products_data_df['weight'].replace({'nan': np.nan , 'NULL': np.nan , '?': np.nan , 'NaN':np.nan})   # Replace all null types to np.nan
+        products_data_df.dropna(inplace=True, subset='weight')  # Drop nulls in weight column
+
+        products_data_df['weight'] = products_data_df['weight'].str.replace('ml','g')  # Convert ml to grams
 
          
-        products_table['weight'] = products_table['weight'].apply(lambda x: re.split(r"([a-zA-Z]+)" , x))  # Split numbers and letter in weights column into a list
+        products_data_df['weight'] = products_data_df['weight'].apply(lambda x: re.split(r"([a-zA-Z]+)" , x))  # Split numbers and letter in weights column into a list
 
         def convert_weights(lists):
             if 'x' in lists:                                      # Checks for 'x' in each list, inside each row
@@ -100,62 +164,99 @@ class DataCleaning:
                 return convert_grams
             
         
-        products_table['weight'] = products_table['weight'].apply(convert_weights)  # Apply convert_weights func
+        products_data_df['weight'] = products_data_df['weight'].apply(convert_weights).round(6)  # Apply convert_weights func
 
-        products_table['weight'] = products_table['weight'].round(6)                                                   ####   MOVE .ROUND() INTO ABOVE CODE LINE ####
-
-        return products_table
+        return products_data_df
     
-    def clean_products_data(self, address):
-        products_table = self.convert_product_weights(address)
+    def clean_products_data(self, products_data_df):
+        """
+        Cleans and preprocesses products data.
+
+        Parameters
+        ----------
+        products_data_df : pandas.DataFrame
+            The input products data DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed products data.
+        """
+
+        products_data_df = self.convert_product_weights(products_data_df)
 
         
-        products_table.drop(["Unnamed: 0"], axis=1 , inplace=True)  # Drop unnamed column which was equal to index 
-        products_table.rename(columns={"product_price": "product_price_£", "weight": "weight_kg"}, inplace=True)  # Rename columns
-        products_table = products_table[['product_code', 'product_name', 'product_price_£', 'category', 'weight_kg', 'removed','EAN', 'uuid','date_added']]  # Reorder columns 
+        products_data_df.drop(["Unnamed: 0"], axis=1 , inplace=True)  # Drop unnamed column which was equal to index 
+        products_data_df.rename(columns={"product_price": "product_price_£", "weight": "weight_kg"}, inplace=True)  # Rename columns
+        products_data_df = products_data_df[['product_code', 'product_name', 'product_price_£', 'category', 'weight_kg', 'removed','EAN', 'uuid','date_added']]  # Reorder columns 
 
-        products_table = products_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})     #not delted? #date_details.dropna(inplace=True)
-        products_table.isnull().any(axis=0)
+        products_data_df = products_data_df.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})     
+        products_data_df.isnull().any(axis=0)  #NOTE: no nulls in all columns 
         
-        products_table['product_price_£'] = products_table['product_price_£'].map(lambda x: x.lstrip('£'))  # Remove pound symbol
-        products_table['product_price_£'] = products_table['product_price_£'].astype('float64').round(2)  # Change product_price_£ column dtype 
+        products_data_df['product_price_£'] = products_data_df['product_price_£'].map(lambda x: x.lstrip('£'))  # Remove pound symbol
+        products_data_df['product_price_£'] = products_data_df['product_price_£'].astype('float64').round(2)  # Change product_price_£ column dtype 
         
-        products_table['date_added'] = products_table['date_added'].apply(parse)
-        products_table['date_added'] = pd.to_datetime(products_table['date_added'], errors='coerce')  # Change dtype to datetime64
+        products_data_df['date_added'] = products_data_df['date_added'].apply(parse)
+        products_data_df['date_added'] = pd.to_datetime(products_data_df['date_added'], errors='coerce')  # Change dtype to datetime64
 
-        products_table['EAN'] = products_table['EAN'].astype('int64')  # Change EAN column astype to int64
+        products_data_df['EAN'] = products_data_df['EAN'].astype('int64')  # Change EAN column astype to int64
 
-        #products_table.set_index('product_code', inplace=True)                                                         ####   CHECK THIS    #####
-        products_table['removed'] = products_table['removed'].replace('Still_avaliable','still_available')
+        products_data_df.set_index('product_code', inplace=True)                                                         
+        products_data_df['removed'] = products_data_df['removed'].replace('Still_avaliable','still_available')
 
-        return products_table 
+        return products_data_df 
    
     
-    def clean_orders_data(self, table_name):
-        orders_table = DataExtractor().read_rds_table(table_name)
+    def clean_orders_data(self, orders_data_df):
+        """
+        Cleans and preprocesses orders data.
 
-        orders_table.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)  # Drop unnecesary columns
+        Parameters
+        ----------
+        orders_data_df : pandas.DataFrame
+            The input orders data DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed orders data.
+        """
+
+        orders_data_df.drop(['first_name','last_name','1', 'level_0', 'index'], axis=1, inplace=True)  # Drop unnecesary columns
         
-        return orders_table
+        return orders_data_df
     
 
-    def clean_date_details_data(self, address):
-        date_details_table = DataExtractor().extract_from_s3(address)
+    def clean_date_details_data(self, date_details_df):
+        """
+        Cleans and preprocesses date details data.
 
-         
-        date_details_table = date_details_table[['date_uuid', 'year', 'month', 'day', 'time_period', 'timestamp']]  # Reorder table columns
+        Parameters
+        ----------
+        date_details_df : pandas.DataFrame
+            The input date details data DataFrame.
 
-        date_details_table.drop(date_details_table[date_details_table['day'].str.len() > 8].index, inplace= True)   # Drop all rows with erronuos columns
-        date_details_table = date_details_table.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})  # Replace any null types with NaN
-        date_details_table.dropna(inplace=True)  # Drop all nulls  
+        Returns
+        -------
+        pandas.DataFrame
+            Cleaned and preprocessed date details data.
+        """
 
-        def month_convert(x):   # Convert singular months to have zero at the start 
+        date_details_df = date_details_df[['date_uuid', 'year', 'month', 'day', 'time_period', 'timestamp']]  # Reorder table columns
+
+        bad_indexes = date_details_df.loc[lambda df: df['day'].str.len() > 3].index
+
+        date_details_df = date_details_df.drop(bad_indexes)   # Drop all rows with erronuos columns
+        date_details_df = date_details_df.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})  # Replace any null types with NaN
+        date_details_df.dropna(inplace=True)  # Drop all nulls  
+
+        def convert_month(x):   # Convert singular months to have zero at the start 
             if len(str(x)) == 1:
                 return '0'+ str(x)
             else:
                 return x
 
-        date_details_table['month']= date_details_table['month'].apply(month_convert)  # Apply month_convert function to month column
-        date_details_table.set_index('date_uuid', inplace=True)  # Set index to date_uuid 
-
-        return date_details_table
+        date_details_df['month']= date_details_df['month'].apply(convert_month)  # Apply month_convert function to month column
+        date_details_df.set_index('date_uuid', inplace=True)  # Set index to date_uuid 
+        
+        return date_details_df
