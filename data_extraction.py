@@ -33,7 +33,7 @@ class DataExtractor:
         Retrieves store data from multiple URLs concurrently.
 
     extract_from_s3(address)
-        Extracts data from an S3 bucket based on the file format.
+        Extracts data from an S3 bucket based on the file format (CSV or JSON).
     """
 
     def __init__(self, connect):
