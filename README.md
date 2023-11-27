@@ -186,7 +186,7 @@ Contains SQL queries run for insight into business metrics questions (outputs co
 
 #### How quickly is the company making sales?
 
-|year|	actual_time_taken"|
+|year|	actual_time_taken|
 |----|--------------------|
 |2013|	hours: 2,  minutes: 17,  seconds: 15.655|
 |1993|	hours: 2,  minutes: 15,  seconds: 40.130|
