@@ -26,13 +26,12 @@ ALTER TABLE dim_store_details ALTER COLUMN latitude TYPE FLOAT USING longitude::
 ALTER TABLE dim_store_details ALTER COLUMN country_code TYPE VARCHAR(2);
 ALTER TABLE dim_store_details ALTER COLUMN continent TYPE VARCHAR(255);                             
 
-/* There is a row that represents the business's website change the location column values where they're null to N/A.*/
+/* Row that represents the business's website change the location column values where they're null to N/A.*/
 UPDATE dim_store_details SET locality = coalesce(locality, 'N/A');
 UPDATE dim_store_details SET address = coalesce(address, 'N/A');
-/* Keep latitude and longitude column values as null */
 
                               
-/* in dim_products , creates new weight_class column renames the removed column to still_available and changes data types */  
+/* In dim_products , creates new weight_class column renames the removed column to still_available and changes data types */  
 ALTER TABLE dim_products ADD COLUMN weight_class VARCHAR(14);
 UPDATE dim_products
 SET weight_class =
