@@ -8,7 +8,7 @@
 #### 3. Installation instructions
 #### 4. Usage Instructions
 #### 5. File Structure of the project
-#### 6. Queries
+#### 6. Up-to-date business metrics 
 #### 7. License Informatrion 
 
 
@@ -22,7 +22,7 @@ Currently, their sales data is spread across many different data sources making 
 
 
 ### The aim: 
-Making sales data accessible by gathering data from different resources. Clean all data and develop a star based schema database in which important metrics can be queried on from one centralised location for a multinational company that sells various goods across the globe. 
+Making sales data accessible by gathering data from different resources. Cleaning all data and developing a star based schema database in which important metrics can be queried on from one centralised location for a multinational company that sells various goods across the globe. 
 
 
 
@@ -52,7 +52,10 @@ Making sales data accessible by gathering data from different resources. Clean a
 
 ## File structure of the project:
 
-#### 1. data_cleaning.py  
+#### 1. main.py  
+Contains code to run different methods from different classes within different files in one location 
+
+#### 2. data_cleaning.py  
 Contains 'DataCleaning' class holding the following methods to clean the data:
 - clean_user_data()
 - clean_card_data()
@@ -62,7 +65,7 @@ Contains 'DataCleaning' class holding the following methods to clean the data:
 - clean_orders_data() 
 - clean_date_details_data()     
 
-#### 2. data_extraction.py
+#### 3. data_extraction.py
 Contains 'DataExtractor' class holding the following methods to extract the data:
 - read_rds_table()
 - retrieve_pdf_data()
@@ -71,7 +74,7 @@ Contains 'DataExtractor' class holding the following methods to extract the data
 - retrieve_stores_data()
 - extract_from_s3()
 
-#### 3. database_utils.py  
+#### 4. database_utils.py  
 Contains 'DatabaseConnector' class holding the folling methods to connect the data:
 - read_db_creds()
 - init_db_engine()
@@ -79,11 +82,17 @@ Contains 'DatabaseConnector' class holding the folling methods to connect the da
 - init_local_db_engine()
 - upload_to_db()
 
-#### 4. main.py  
-Contains code to run different methods from different classes within different files in one location 
+#### 5. MRDC_alter_table_queries.sql 
+Contains SQL CRUD operation queries for column alterations, creating primary and foreign key constraints for all tables.   
 
 
-## Queries 
+#### 6. MRDC_queries.sql
+Contains SQL queries run for insight into business metrics questions (outputs covered in the "Up to date business metrics" section).  
+
+
+## Up-to-date business metrics 
+
+
 
 #### How many stores does the business have and in which countries? 
 
