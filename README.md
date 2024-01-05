@@ -6,10 +6,10 @@
 #### 1. Project description and aims
 #### 2. What I've learnt
 #### 3. Installation instructions
-#### 4. Usage Instructions
-#### 5. File Structure of the project
+#### 4. Usage instructions
+#### 5. File structure of the project
 #### 6. Up-to-date business metrics 
-#### 7. License Informatrion 
+#### 7. License information 
 
 
 
