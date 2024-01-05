@@ -26,19 +26,19 @@ Making sales data accessible by gathering data from different resources. Cleanin
 
 
 
-## What I've learnt:
+## Major milestones:
 
 ### The project is split into 4 milestones:
 1.  Setting up a conda environment for data replicability 
 
-2.  The use of Python Classes and methods for: 
-    - Extracting data from various data sources including PDFs, CSVs , Relational Database Tables, S3 Buckets and Web APIs. Learning the use of Threads to efficiently extract large number of WEB APIs in parrallel to one another. 
-    - Cleaning the data by mainly utlilising Pandas and Numpy. 
+2.  The use of Python classes and methods for: 
+    - Extracting data from various data sources including PDFs, CSVs, Relational Database Tables, S3 Buckets and Web APIs. Learning the use of Threads to efficiently extract a large number of WEB APIs in parallel to one another. 
+    - Cleaning the data by mainly utilising Pandas and Numpy. 
     - Uploading tables to a locally created database using SQLAlchemy engine.   
 
-3. Creating a star-based database schema via SQL CRUD operations. Changing column data types and applying primary and foreign keys contraints.  
+3. Creating a star-based database schema via SQL CRUD operations. Changing column data types and applying primary and foreign key constraints.  
 
-4. Querying the data on pgAdmin4 via subqueries, joining tables and CTE's.  
+4. Querying the data on pgAdmin4 via subqueries, joining tables and CTEs.  
 
 
 ## Installation instructions:
@@ -56,7 +56,7 @@ Making sales data accessible by gathering data from different resources. Cleanin
 Contains code to run different methods from different classes within different files in one location 
 
 #### 2. data_cleaning.py  
-Contains 'DataCleaning' class holding the following methods to clean the data:
+Contains the 'DataCleaning' class holding the following methods to clean the data:
 - clean_user_data()
 - clean_card_data()
 - clean_store_data()
@@ -66,7 +66,7 @@ Contains 'DataCleaning' class holding the following methods to clean the data:
 - clean_date_details_data()     
 
 #### 3. data_extraction.py
-Contains 'DataExtractor' class holding the following methods to extract the data:
+Contains the 'DataExtractor' class holding the following methods to extract the data:
 - read_rds_table()
 - retrieve_pdf_data()
 - list_number_of_stores()
@@ -75,7 +75,7 @@ Contains 'DataExtractor' class holding the following methods to extract the data
 - extract_from_s3()
 
 #### 4. database_utils.py  
-Contains 'DatabaseConnector' class holding the folling methods to connect the data:
+Contains the 'DatabaseConnector' class holding the following methods to connect the data:
 - read_db_creds()
 - init_db_engine()
 - list_db_tables()
