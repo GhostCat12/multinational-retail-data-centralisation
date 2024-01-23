@@ -4,6 +4,7 @@ from dateutil.parser import parse
 import re
 
 
+
 class DataCleaning: 
 
     """
@@ -33,6 +34,19 @@ class DataCleaning:
         Cleans and preprocesses date details data.
     """
 
+    def replace_and_drop_nulls(self, df_name, subset=None):
+        df_name.replace({'NULL': np.nan, 'None': np.nan, 'NaN': np.nan, 'nan': np.nan, '?': np.nan}, inplace=True)
+        df_name = df_name.dropna(how='all', subset=subset)
+        return df_name
+
+    def convert_to_datetime(self, df_name, column_names:list):
+
+        for column_name in column_names:
+            df_name[column_name] = df_name[column_name].apply(parse)
+            df_name[column_name] = pd.to_datetime(df_name[column_name], errors='coerce')
+        return df_name   
+
+
     def clean_user_data(self, user_df):
         """
         Cleans and preprocesses user data.
@@ -47,20 +61,16 @@ class DataCleaning:
         pandas.DataFrame
             Cleaned and preprocessed user data.
         """
-                
+             
         user_df['country_code'].replace({'GGB': 'GB'}, inplace=True)  # 'GGB' typo refers to united kingdom in all 6 rows, therefore replace to GB 
-        user_df.replace({'NULL': np.nan , 'None': np.nan , 'NaN': np.nan}, inplace=True)  # Null values are inserted as 'NULL'. Change 'NULL' to NaN values
-        user_df = user_df.dropna()  # NaN values run across entire row, so delete all NaN rows        
+        user_df = self.replace_and_drop_nulls(user_df)    # Change null values to np.NaN and drop     
         user_df = user_df.drop(user_df[~user_df.country_code.isin(["GB", "DE", "US"])].index)   # All errounous values run across entire row. Using country_code column drop rows with incorrect data
 
         regex_expression = '^(?:(?:\(?(?:0(?:0|11)\)?[\s-]?\(?|\+)44\)?[\s-]?(?:\(?0\)?[\s-]?)?)|(?:\(?0))(?:(?:\d{5}\)?[\s-]?\d{4,5})|(?:\d{4}\)?[\s-]?(?:\d{5}|\d{3}[\s-]?\d{3}))|(?:\d{3}\)?[\s-]?\d{3}[\s-]?\d{3,4})|(?:\d{2}\)?[\s-]?\d{4}[\s-]?\d{4}))(?:[\s-]?(?:x|ext\.?|\#)\d{3,4})?$' # Regular expression to match phone numbers
         user_df.loc[~user_df['phone_number'].str.match(regex_expression), 'phone_number'] = np.nan # Replace any values in phone_number column not matching regex with NaN
         # Note: have not deleted NaN in phone number as it would delete 20% of data 
         
-        user_df['date_of_birth'] = user_df['date_of_birth'].apply(parse)
-        user_df['date_of_birth'] = pd.to_datetime(user_df['date_of_birth'] , errors='coerce' ) # Set date_of_birth as date64 format
-        user_df['join_date'] = user_df['join_date'].apply(parse)
-        user_df['join_date'] = pd.to_datetime(user_df['join_date'],  errors='coerce') # Set join_date as date64 format
+        user_df = self.convert_to_datetime(user_df, column_names=['date_of_birth','join_date']) # Convert date_of_birth and join_date as date64 format
                                   
         user_df.drop(['index'], axis=1, inplace=True) # Drop index column
         user_df = user_df[['user_uuid', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 'company', 'join_date', 'country_code']] # Reorder columns
@@ -83,14 +93,11 @@ class DataCleaning:
         pandas.DataFrame
             Cleaned and preprocessed card details data.
         """
-
-        card_details_df.replace({'NULL': np.nan, "\?": ""}, regex=True, inplace=True)  # Replace 'NULL' with np.nan values, and remove question marks. 
-        card_details_df = card_details_df.dropna()   # Remove all nulls
+        card_details_df.replace({"\?": ""}, regex=True, inplace=True)  # Remove question marks from card details. 
+        card_details_df = self.replace_and_drop_nulls(card_details_df)     # replace all null values with np.nan and remove all nulls
         card_details_df = card_details_df[card_details_df['expiry_date'].astype(str).str.len() < 6]   # Filter dataframe to remove all erronous values across rows using expiry data column. 
         
-        card_details_df['date_payment_confirmed'] = card_details_df['date_payment_confirmed'].apply(parse)
-        card_details_df['date_payment_confirmed'] = pd.to_datetime(card_details_df['date_payment_confirmed'] , errors='coerce' )  # Convert to datetime64
-        
+        card_details_df = self.convert_to_datetime(card_details_df, column_names=['date_payment_confirmed']) # Convert date_payment_confirmed to datetime64 format
         card_details_df.set_index('card_number', inplace=True)  # Set index to 'card_number' column
         
         return card_details_df
@@ -111,17 +118,16 @@ class DataCleaning:
             Cleaned and preprocessed store data.
         """
 
-        stores_data_df = stores_data_df[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date']] # Redorder columns and remove 'index' and 'lat' columns 
+        stores_data_df = stores_data_df[['store_code', 'store_type', 'staff_numbers', 'address', 'locality', 'country_code', 'continent', 'latitude', 'longitude', 'opening_date']] # Reorder columns and remove 'index' and 'lat' columns 
         stores_data_df.set_index('store_code', inplace=True)  # Set index to store_code
         
         stores_data_df = stores_data_df.drop(stores_data_df[~stores_data_df['country_code'].isin(['GB' , 'DE', 'US'])].index) # Removes null and erroneous values which run across entire rows
         stores_data_df['continent'].replace({'eeEurope' : 'Europe' , 'eeAmerica': 'America'}, inplace=True)  # Replaces erronous values with correct continent
         stores_data_df['address'] = stores_data_df['address'].replace(r'\n' ,', ',regex=True)  # Replace '\n' with a comma in 'address' column 
         stores_data_df['staff_numbers'] = stores_data_df['staff_numbers'].str.replace('\D', '', regex=True) # Removes any erronous alphabet characters within values 
-        stores_data_df = stores_data_df.replace({'N/A': np.nan, 'None': np.nan }) # Replace all null types to np.nan
+        stores_data_df = stores_data_df.replace({'N/A': np.nan, 'None': np.nan }) # Replace all null values to np.nan type
         
-        stores_data_df['opening_date'] = stores_data_df['opening_date'].apply(parse)
-        stores_data_df['opening_date'] = pd.to_datetime(stores_data_df['opening_date'], errors = 'coerce') # Change 'opening_date' column Dtype to datetime64
+        stores_data_df = self.convert_to_datetime(stores_data_df, column_names=['opening_date']) # Convert 'opening_date to datetime64 format
 
         return stores_data_df
 
@@ -140,14 +146,12 @@ class DataCleaning:
         pandas.DataFrame
             Products data with standardized weight format.
         """
-
+        
         products_data_df = products_data_df.drop(products_data_df[products_data_df['weight'].str.len() == 10].index)  # Remove erroueous values where length of string = 10 using weight column
-        products_data_df['weight'].replace({'nan': np.nan , 'NULL': np.nan , '?': np.nan , 'NaN':np.nan})   # Replace all null types to np.nan
-        products_data_df.dropna(inplace=True, subset='weight')  # Drop nulls in weight column
+        products_data_df = self.replace_and_drop_nulls(products_data_df, subset='weight')    # Replace all null values to np.nan type and drop NaNs in weight column.
 
         products_data_df['weight'] = products_data_df['weight'].str.replace('ml','g')  # Convert ml to grams
 
-         
         products_data_df['weight'] = products_data_df['weight'].apply(lambda x: re.split(r"([a-zA-Z]+)" , x))  # Split numbers and letter in weights column into a list
 
         def convert_weights(lists):
@@ -184,20 +188,15 @@ class DataCleaning:
         """
 
         products_data_df = self.convert_product_weights(products_data_df)
-
         
         products_data_df.drop(["Unnamed: 0"], axis=1 , inplace=True)  # Drop unnamed column which was equal to index 
         products_data_df.rename(columns={"product_price": "product_price_£", "weight": "weight_kg"}, inplace=True)  # Rename columns
         products_data_df = products_data_df[['product_code', 'product_name', 'product_price_£', 'category', 'weight_kg', 'removed','EAN', 'uuid','date_added']]  # Reorder columns 
-
-        products_data_df = products_data_df.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})     
-        products_data_df.isnull().any(axis=0)  #NOTE: no nulls in all columns 
         
         products_data_df['product_price_£'] = products_data_df['product_price_£'].map(lambda x: x.lstrip('£'))  # Remove pound symbol
         products_data_df['product_price_£'] = products_data_df['product_price_£'].astype('float64').round(2)  # Change product_price_£ column dtype 
         
-        products_data_df['date_added'] = products_data_df['date_added'].apply(parse)
-        products_data_df['date_added'] = pd.to_datetime(products_data_df['date_added'], errors='coerce')  # Change dtype to datetime64
+        products_data_df = self.convert_to_datetime(products_data_df, column_names=['date_added']) # Convert date_added to datetime64 format
 
         products_data_df['EAN'] = products_data_df['EAN'].astype('int64')  # Change EAN column astype to int64
 
@@ -247,8 +246,8 @@ class DataCleaning:
         bad_indexes = date_details_df.loc[lambda df: df['day'].str.len() > 3].index
 
         date_details_df = date_details_df.drop(bad_indexes)   # Drop all rows with erronuos columns
-        date_details_df = date_details_df.replace({'NULL' : np.nan , 'None' : np.nan , '?' : np.nan , 'nan' : np.nan})  # Replace any null types with NaN
-        date_details_df.dropna(inplace=True)  # Drop all nulls  
+        date_details_df = self.replace_and_drop_nulls(date_details_df) # Replace any null types with np.NaN and drop all NaNs  
+
 
         def convert_month(x):   # Convert singular months to have zero at the start 
             if len(str(x)) == 1:
